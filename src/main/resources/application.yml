@@ -1,10 +1,10 @@
 spring:
   application:
-    name: springboot-init
+    name: xianYuApi_backend
   # DataSource Config
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/my_db
+    url: jdbc:mysql://localhost:3306/api
     username: root
     password: 123456
   mvc:
@@ -32,3 +32,17 @@ mybatis-plus:
       logic-delete-field: isDelete # 全局逻辑删除的实体字段名(since 3.3.0,配置后可以忽略不配置步骤2)
       logic-delete-value: 1 # 逻辑已删除值(默认为 1)
       logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
+#下面配置测试用
+xianyu:
+  client:
+    access-key: xianyu
+    secret-key: 123456
+# application.yml (Spring Boot)
+dubbo:
+  application:
+    name: dubbo-springboot-demo-provider
+  protocol:
+    name: dubbo
+    port: -1
+  registry:
+    address: nacos://localhost:8848

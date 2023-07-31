@@ -1,17 +1,17 @@
 package com.yupi.project.controller;
 
+import cn.hutool.core.util.RandomUtil;
+import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
-import com.yupi.project.common.BaseResponse;
-import com.yupi.project.common.DeleteRequest;
-import com.yupi.project.common.ErrorCode;
-import com.yupi.project.common.ResultUtils;
+import com.xianyu.xianyucommon.model.entity.User;
+import com.xianyu.xianyucommon.model.vo.UserVO;
+import com.yupi.project.common.*;
 import com.yupi.project.exception.BusinessException;
-import com.yupi.project.model.dto.*;
+
 import com.yupi.project.model.dto.user.*;
-import com.yupi.project.model.entity.User;
-import com.yupi.project.model.vo.UserVO;
+
 import com.yupi.project.service.UserService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -33,6 +33,11 @@ public class UserController {
 
     @Resource
     private UserService userService;
+
+    /**
+     * 盐值，混淆密码
+     */
+    private static final String SALT = "yupi";
 
     // region 登录相关
 
@@ -110,6 +115,27 @@ public class UserController {
     // endregion
 
     // region 增删改查
+    /**
+     * 更改签名
+     *
+     * @param request
+     * @return
+     */
+    @PostMapping("/update/sign")
+    public BaseResponse<Boolean> updateSign(HttpServletRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        //todo 用户申请更换签名（这里是用户自动更新签名）
+        User loginUser = userService.getLoginUser(request);
+        String userAccount = loginUser.getUserAccount();
+        String accessKey = DigestUtil.md5Hex(SALT+userAccount+ RandomUtil.randomNumbers(5));
+        String secretKey = DigestUtil.md5Hex(SALT+userAccount+ RandomUtil.randomNumbers(8));
+        loginUser.setAccessKey(accessKey);
+        loginUser.setSecretKey(secretKey);
+        boolean result = userService.updateById(loginUser);
+        return ResultUtils.success(result);
+    }
 
     /**
      * 创建用户

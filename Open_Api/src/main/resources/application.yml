@@ -1,0 +1,8 @@
+server:
+  port: 8123
+  servlet:
+    context-path: /api
+xianyu:
+  client:
+    access-key: xianyu
+    secret-key: 123456

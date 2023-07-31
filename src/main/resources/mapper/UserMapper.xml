@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.yupi.project.mapper.UserMapper">
 
-    <resultMap id="BaseResultMap" type="com.yupi.project.model.entity.User">
+    <resultMap id="BaseResultMap" type="com.xianyu.xianyucommon.model.entity.User">
         <id property="id" column="id" jdbcType="BIGINT"/>
         <result property="userName" column="userName" jdbcType="VARCHAR"/>
         <result property="userAccount" column="userAccount" jdbcType="VARCHAR"/>
@@ -12,6 +12,8 @@
         <result property="gender" column="gender" jdbcType="TINYINT"/>
         <result property="userRole" column="userRole" jdbcType="VARCHAR"/>
         <result property="userPassword" column="userPassword" jdbcType="VARCHAR"/>
+        <result property="accessKey" column="accessKey" jdbcType="VARCHAR"/>
+        <result property="secretKey" column="secretKey" jdbcType="VARCHAR"/>
         <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
         <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
         <result property="isDelete" column="isDelete" jdbcType="TINYINT"/>
@@ -20,7 +22,7 @@
     <sql id="Base_Column_List">
         id,userName,userAccount,
         userAvatar,gender,userRole,
-        userPassword,createTime,updateTime,
+        userPassword,accessKey,secretKey,createTime,updateTime,
         isDelete
     </sql>
 </mapper>
