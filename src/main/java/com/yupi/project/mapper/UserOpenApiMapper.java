@@ -1,6 +1,9 @@
 package com.yupi.project.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xianyu.xianyucommon.model.entity.UserOpenApi;
+import com.yupi.project.common.OpenApiIdAndNums;
+
+import java.util.List;
 
 /**
 * @author happyxianfish
@@ -9,6 +12,7 @@ import com.xianyu.xianyucommon.model.entity.UserOpenApi;
 * @Entity com.yupi.project.model.entity.UserOpenApi
 */
 public interface UserOpenApiMapper extends BaseMapper<UserOpenApi> {
+    List<OpenApiIdAndNums> getTopOpenApiInvoke(int limit);
 
 }
 
