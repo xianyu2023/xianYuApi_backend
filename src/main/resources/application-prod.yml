@@ -1,6 +1,45 @@
+#spring:
+#  datasource:
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    url: jdbc:mysql://localhost:3306/my_db
+#    username: root
+#    password: 123456
+# 线上配置文件
+# @author <a href="https://github.com/liyupi">程序员鱼皮</a>
+# @from <a href="https://yupi.icu">编程导航知识星球</a>
+server:
+  port: 7529
+#  servlet:
+#    session:
+#      cookie:
+#          domain: sh.run.tcloudbase.com
+  #指定服务器创建的cookie的有效damain范围，这里好像是后端项目域名的一个二级域名
 spring:
+  # 数据库配置
+  # todo 需替换配置
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/my_db
+    driver-class-name: com.mysql.jdbc.Driver
+    url: 'jdbc:mysql://rm-cn-zsk3d2s1b000ha7o.rwlb.rds.aliyuncs.com:3306/api?useSSL=false'
     username: root
-    password: 123456
+    password: Qjj@317041
+  #session失效时间 s
+  session:
+    timeout: 86400
+  # Redis 配置
+  # todo 需替换配置
+  redis:
+    database: 1
+    host: r-bp1uo8pb808cbm55jopd.redis.rds.aliyuncs.com
+    port: 6379
+    timeout: 5000
+    password: Qjj@317041123
+  # Elasticsearch 配置
+  # todo 需替换配置
+#  elasticsearch:
+#    uris: http://localhost:9200
+#    username: root
+#    password: 123456
+mybatis-plus:
+  configuration:
+    # 生产环境关闭日志
+    log-impl: ''

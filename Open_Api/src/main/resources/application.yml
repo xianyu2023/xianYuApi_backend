@@ -6,3 +6,6 @@ xianyu:
   client:
     access-key: xianyu
     secret-key: 123456
+spring:
+  profiles:
+    active: dev

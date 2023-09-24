@@ -3,6 +3,8 @@ server:
   servlet:
     context-path: /api
 spring:
+  profiles:
+    active: dev
   cloud:
     gateway:
       routes:
@@ -26,4 +28,4 @@ dubbo:
     name: dubbo
     port: -1
   registry:
-    address: nacos://localhost:8848
+    address: nacos://62.234.28.188:8848

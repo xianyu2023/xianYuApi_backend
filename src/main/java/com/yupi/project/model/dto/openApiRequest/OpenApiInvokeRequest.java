@@ -28,7 +28,6 @@ public class OpenApiInvokeRequest extends PageRequest implements Serializable {
      */
     private String userRequestParams;
 
-
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 }

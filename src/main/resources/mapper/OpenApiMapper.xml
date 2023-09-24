@@ -18,12 +18,15 @@
             <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
             <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
             <result property="isDeleted" column="isDeleted" jdbcType="TINYINT"/>
+            <result property="path" column="path" jdbcType="VARCHAR"/>
+            <result property="origin" column="origin" jdbcType="VARCHAR"/>
+
     </resultMap>
 
     <sql id="Base_Column_List">
         id,name,description,
         url,method,requestParams,requestHeader,
         responseHeader,status,userId,
-        createTime,updateTime,isDeleted
+        createTime,updateTime,isDeleted,path,origin
     </sql>
 </mapper>

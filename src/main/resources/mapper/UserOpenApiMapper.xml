@@ -21,7 +21,13 @@
         totalNum,leftNum,status,
         createTime,updateTime,isDeleted
     </sql>
+
     <select id="getTopOpenApiInvoke" resultType="com.yupi.project.common.OpenApiIdAndNums">
         select openApiId,sum(totalNum) as totalNums from user_open_api group by openApiId order by totalNums desc limit #{limit};
     </select>
+
+    <select id="getOpenApiInvoke" resultType="com.yupi.project.common.OpenApiIdAndNums">
+        select openApiId,sum(totalNum) as totalNums from user_open_api group by openApiId;
+    </select>
+
 </mapper>

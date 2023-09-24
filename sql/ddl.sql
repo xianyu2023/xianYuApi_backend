@@ -4,44 +4,44 @@ create database if not exists api;
 -- 切换库
 use api;
 
--- 用户表
-create table if not exists user
+-- auto-generated definition
+create table user
 (
-    id           bigint auto_increment comment 'id' primary key,
+    id           bigint auto_increment comment 'id'
+        primary key,
     userName     varchar(256)                           null comment '用户昵称',
     userAccount  varchar(256)                           not null comment '账号',
     userAvatar   varchar(1024)                          null comment '用户头像',
     gender       tinyint                                null comment '性别',
     userRole     varchar(256) default 'user'            not null comment '用户角色：user / admin',
     userPassword varchar(512)                           not null comment '密码',
-    accessKey varchar(512)                           not null comment 'accessKey',
-    secretKey varchar(512)                           not null comment 'secretKey',
+    accessKey    varchar(512) default 'xianyu'          not null comment 'accessKey',
+    secretKey    varchar(512) default '123456'          not null comment 'secretKey',
     createTime   datetime     default CURRENT_TIMESTAMP not null comment '创建时间',
     updateTime   datetime     default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
     isDelete     tinyint      default 0                 not null comment '是否删除',
+    status       tinyint      default 0                 not null comment '0-正常
+1-封号
+2-永久封号',
     constraint uni_userAccount
         unique (userAccount)
-) comment '用户';
+)
+    comment '用户' charset = utf8;
+
+
 
 -- 帖子表
 create table if not exists post
 (
-    id            bigint auto_increment comment 'id' primary key,
-    age           int comment '年龄',
-    gender        tinyint  default 0                 not null comment '性别（0-男, 1-女）',
-    education     varchar(512)                       null comment '学历',
-    place         varchar(512)                       null comment '地点',
-    job           varchar(512)                       null comment '职业',
-    contact       varchar(512)                       null comment '联系方式',
-    loveExp       varchar(512)                       null comment '感情经历',
-    content       text                               null comment '内容（个人介绍）',
-    photo         varchar(1024)                      null comment '照片地址',
-    reviewStatus  int      default 0                 not null comment '状态（0-待审核, 1-通过, 2-拒绝）',
-    reviewMessage varchar(512)                       null comment '审核信息',
-    viewNum       int                                not null default 0 comment '浏览数',
-    thumbNum      int                                not null default 0 comment '点赞数',
-    userId        bigint                             not null comment '创建用户 id',
-    createTime    datetime default CURRENT_TIMESTAMP not null comment '创建时间',
-    updateTime    datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
-    isDelete      tinyint  default 0                 not null comment '是否删除'
-) comment '帖子';
+    id         bigint auto_increment comment 'id' primary key,
+    title      varchar(512)                       null comment '标题',
+    content    text                               null comment '内容',
+    tags       varchar(1024)                      null comment '标签列表（json 数组）',
+    thumbNum   int      default 0                 not null comment '点赞数',
+    favourNum  int      default 0                 not null comment '收藏数',
+    userId     bigint                             not null comment '创建用户 id',
+    createTime datetime default CURRENT_TIMESTAMP not null comment '创建时间',
+    updateTime datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete   tinyint  default 0                 not null comment '是否删除',
+    index idx_userId (userId)
+) comment '帖子' collate = utf8mb4_unicode_ci;

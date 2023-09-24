@@ -1,5 +1,7 @@
 package com.xianyu.xianyucommon.service;
 
+import com.xianyu.xianyucommon.model.entity.UserOpenApi;
+
 /**
 * @author happyxianfish
 * @description 针对表【user_open_api(用户调用接口关系表)】的数据库操作Service
@@ -12,5 +14,13 @@ public interface InnerUserOpenApiService {
      * @param openApiId
      */
     boolean invokeCount(Long userId,Long openApiId);
+
+    /**
+     * 获取用户对接口的关系，用以判断用户是否有权限调用该接口
+     * @param userId
+     * @param apiId
+     * @return
+     */
+    UserOpenApi judgeUserRight(Long userId,Long apiId);
 
 }

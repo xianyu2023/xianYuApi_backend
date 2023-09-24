@@ -43,7 +43,7 @@
         <!--        引入自己创建的starter-->
         <dependency>
             <groupId>com.xianyu</groupId>
-            <artifactId>XianYuOpenApi-client-sdk</artifactId>
+            <artifactId>XianYuOpenApi-client-sdk-admin</artifactId>
             <version>0.0.1</version>
         </dependency>
 

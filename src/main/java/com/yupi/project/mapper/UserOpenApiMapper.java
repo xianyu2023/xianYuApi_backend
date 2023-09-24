@@ -14,6 +14,8 @@ import java.util.List;
 public interface UserOpenApiMapper extends BaseMapper<UserOpenApi> {
     List<OpenApiIdAndNums> getTopOpenApiInvoke(int limit);
 
+    List<OpenApiIdAndNums> getOpenApiInvoke();
+
 }
 
 

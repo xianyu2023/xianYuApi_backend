@@ -1,11 +1,9 @@
 package com.yupi.project.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.google.gson.Gson;
 import com.xianyu.xianyucommon.model.entity.OpenApi;
 import com.xianyu.xianyucommon.model.entity.User;
 import com.xianyu.xianyucommon.model.enums.OpenApiStatusEnum;
-import com.xianyu.xianyuopenapiclientsdk.client.XianYuOpenApiClient;
 import com.yupi.project.annotation.AuthCheck;
 import com.yupi.project.common.*;
 import com.yupi.project.constant.CommonConstant;
@@ -14,7 +12,6 @@ import com.yupi.project.model.dto.openApiRequest.OpenApiAddRequest;
 import com.yupi.project.model.dto.openApiRequest.OpenApiInvokeRequest;
 import com.yupi.project.model.dto.openApiRequest.OpenApiQueryRequest;
 import com.yupi.project.model.dto.openApiRequest.OpenApiUpdateRequest;
-
 import com.yupi.project.service.OpenApiService;
 import com.yupi.project.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +23,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
- * 帖子接口
+ * 模拟接口管理
  *
  * @author yupi
  */
@@ -41,8 +38,7 @@ public class OpenApiController {
     @Resource
     private UserService userService;
 
-    @Resource
-    private XianYuOpenApiClient xianYuOpenApiClient;
+
 
     // region 增删改查
 
@@ -197,6 +193,8 @@ public class OpenApiController {
         return ResultUtils.success(openApiPage);
     }
 
+
+
     // endregion
 
     /**
@@ -219,23 +217,22 @@ public class OpenApiController {
         if (oldOpenApi == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
-        //2. 判断该接口是否可以调用
-        //实际调用该接口试试（使用SDK快速调用接口）
-        //todo 这里先暂时访问模拟接口来代替访问这个查询出的接口（由于我们发HTTP请求的客户端访问的接口地址是固定写死的）
-        //判断该接口是否可以调用时有固定方法名改为**根据测试地址来调用**？？？
-        com.xianyu.xianyuopenapiclientsdk.model.User xianyuUser = new com.xianyu.xianyuopenapiclientsdk.model.User();
-        xianyuUser.setUsername("test");
-        String nameByPost = xianYuOpenApiClient.getUserNameByPost(xianyuUser);
-        if (StringUtils.isEmpty(nameByPost)) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"无法调用该接口");
-        }
+        //2. 判断该接口是否可以调用。实际调用该接口试试（管理员在线调用该接口）
+//        User admin = userService.getById(1);
+//        OpenApiInvokeRequest openApiInvokeRequest = new OpenApiInvokeRequest();
+//        openApiInvokeRequest.setId(id);
+//        openApiInvokeRequest.setUserRequestParams("");//todo 用来测试接口是否可用的参数需要是万能的
+//        String result = openApiService.invokeApiByOnline(openApiInvokeRequest, oldOpenApi, admin);
+//        if (StringUtils.isEmpty(result)) {
+//            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"无法调用该接口");
+//        }
         // 仅本人或管理员可修改
         //3. 修改接口数据库中的状态字段为 1
         OpenApi openApi = new OpenApi();
         openApi.setId(id);
         openApi.setStatus(OpenApiStatusEnum.ONLINE.getValue());
-        boolean result = openApiService.updateById(openApi);
-        return ResultUtils.success(result);
+        boolean finalResult = openApiService.updateById(openApi);
+        return ResultUtils.success(finalResult);
     }
 
     /**
@@ -268,7 +265,7 @@ public class OpenApiController {
     }
 
     /**
-     * 在线测试接口调用（供用户使用）
+     * 在线调用、在线调试（接口调用）（供用户使用）
      * @param openApiInvokeRequest
      * @param request
      * @return
@@ -276,30 +273,27 @@ public class OpenApiController {
     @PostMapping("/invoke")
     public BaseResponse<Object> invokeOpenApi(@RequestBody OpenApiInvokeRequest openApiInvokeRequest,
                                                 HttpServletRequest request) {
-        if (openApiInvokeRequest == null || openApiInvokeRequest.getId() <= 0) {
+        if (openApiInvokeRequest == null || openApiInvokeRequest.getId() == null || openApiInvokeRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        //todo （二）调用前可以做一些校验
-        //校验该接口是否存在
-        // 判断是否存在
+        //接口的校验：接口是否存在、开启
         Long id = openApiInvokeRequest.getId();
-        OpenApi oldOpenApi = openApiService.getById(id);
-        if (oldOpenApi == null) {
+        //todo 好像最初访问时会耗时几秒
+        OpenApi openApi = openApiService.getById(id);
+        if (openApi == null || openApi.getStatus() == 0) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
-       //（三）平台后端去调用模拟接口
-        //1.不能使用注解自动注入的那个SD客户端，该客户端的ak、sk是后台管理的，生成的签名不是用户的签名。所以需要自己new个客户端，让客户的签名用于调用模拟接口
-        //2.前提：假设是那些已登录平台的客户在调用，在线客户
-        //todo 3.考虑给未登录、未开通的客户也给与一定次数的调用
-        User loginUser = userService.getLoginUser(request);
-        String accessKey = loginUser.getAccessKey();
-        String secretKey = loginUser.getSecretKey();
-        XianYuOpenApiClient xianYuOpenApiClient = new XianYuOpenApiClient(accessKey, secretKey);
-        //todo 4.调用指定id的模拟接口（暂时调用固定模拟接口getUserNameByPost来代替）
-        String userRequestParams = openApiInvokeRequest.getUserRequestParams();
-        Gson gson = new Gson();
-        com.xianyu.xianyuopenapiclientsdk.model.User user = gson.fromJson(userRequestParams, com.xianyu.xianyuopenapiclientsdk.model.User.class);
-        String result = xianYuOpenApiClient.getUserNameByPost(user);
+        //如果调用的接口是第三方接口呢 todo(多添加一个标识，除了接口id外，还有接口是否是第三方接口，然后网关根据这个走不同的逻辑)
+        //用户是否登录
+        User loginUserPermitNull = userService.getLoginUserPermitNull(request);
+        String result;
+        if (loginUserPermitNull==null) {
+            //客户端SDK调用接口或者在线测试(未登录)
+            result = openApiService.invokeApiBySdk(openApiInvokeRequest, request, openApi);
+            return ResultUtils.success(result);
+        }
+        //在线测试（已登录）
+        result = openApiService.invokeApiByOnline(openApiInvokeRequest, openApi, loginUserPermitNull);
         return ResultUtils.success(result);
     }
 }

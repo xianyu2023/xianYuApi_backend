@@ -1,10 +1,17 @@
 spring:
   application:
     name: xianYuApi_backend
+  profiles:
+    active: dev
   # DataSource Config
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/api
+    username: root
+    password: 123456
+  # elasticsearch配置
+  elasticsearch:
+    uris: http://localhost:9200
     username: root
     password: 123456
   mvc:
@@ -14,7 +21,7 @@ spring:
   session:
     timeout: 86400
     store-type: redis
-  # redis 配置
+#   redis 配置
   redis:
     port: 6379
     host: localhost
@@ -35,8 +42,9 @@ mybatis-plus:
 #下面配置测试用
 xianyu:
   client:
-    access-key: xianyu
-    secret-key: 123456
+    user:
+      access-key: xianyu
+      secret-key: 123456
 # application.yml (Spring Boot)
 dubbo:
   application:
@@ -45,4 +53,9 @@ dubbo:
     name: dubbo
     port: -1
   registry:
-    address: nacos://localhost:8848
+    id: nacos-registry
+    address: nacos://62.234.28.188:8848
+#    address: nacos://localhost:8848
+canal:
+  server: 127.0.0.1:11111 #canal 默认端口11111
+  destination: example

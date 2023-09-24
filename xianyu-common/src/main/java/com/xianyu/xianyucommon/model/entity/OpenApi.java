@@ -85,6 +85,17 @@ public class OpenApi implements Serializable {
      */
     private Integer isDeleted;
 
+    /**
+     * API请求路径
+     */
+    private String path;
+
+    /**
+     * API来源
+     */
+    private String origin;
+
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 }

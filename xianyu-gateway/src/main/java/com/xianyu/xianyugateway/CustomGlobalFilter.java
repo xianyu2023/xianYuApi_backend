@@ -1,17 +1,16 @@
 package com.xianyu.xianyugateway;
-
-import com.xianyu.xianyucommon.model.entity.OpenApi;
+import com.xianyu.apiClientAdmin.utils.SignUtils;
+import com.xianyu.xianyucommon.model.entity.UserOpenApi;
+import com.xianyu.xianyucommon.service.InnerRedisService;
+import org.apache.commons.lang3.StringUtils;
 import com.xianyu.xianyucommon.model.entity.User;
-import com.xianyu.xianyucommon.service.InnerOpenApiService;
 import com.xianyu.xianyucommon.service.InnerUserOpenApiService;
 import com.xianyu.xianyucommon.service.InnerUserService;
-import com.xianyu.xianyuopenapiclientsdk.utils.SignUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.reactivestreams.Publisher;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
-import org.springframework.context.annotation.Bean;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
@@ -24,12 +23,9 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
 import org.springframework.stereotype.Component;
-
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,31 +34,32 @@ import java.util.List;
 /**
  * 自定义全局过滤器
  *
- * @author happyxianfish
+ * @author xianyu
  */
 @Slf4j
 @Component
 public class CustomGlobalFilter implements GlobalFilter, Ordered {
-    @DubboReference
-    private InnerOpenApiService innerOpenApiService;
 
     @DubboReference
     private InnerUserOpenApiService innerUserOpenApiService;
     @DubboReference
     private InnerUserService innerUserService;
 
+    @DubboReference
+    private InnerRedisService innerRedisService;
+
     /**
-     *调用的接口的服务器地址（这里应该是从数据库获取该接口的服务器地址的。OpenApi表应该增加个host主机字段）
-     * todo 这里为了先把整个流程跑通，先暂时写死
+     * todo 白名单
+     * "127.0.0.1","62.234.28.188"
+     * 实测0.0.0.0不包含127.0.0.1
      */
-    private static final String OPEN_API_HOST = "http://localhost:8123";
-    /**
-     * 白名单
-     */
-    private static final List<String> IP_WHITE_LIST = Arrays.asList("127.0.0.1");
+//    private static final List<String> IP_WHITE_LIST = Arrays.asList("0.0.0.0");
 
     /**
      * 1.用户发送请求到 API 网关
+     *
+     * 因为网关项目没引入MyBatis等操作数据库的类库，如果该操作较为复杂，可由xianyuApi-backend来提供增删改查接口。
+     * 网关项目发送http请求或者rpc远程调用接口，不需要重复写逻辑。
      *
      * @param exchange 路由交换机exchange：能获取所有请求信息、响应信息、请求体、响应体
      * @param chain    chain：责任链模式。所有过滤器从上到下执行，串成一个链条。
@@ -70,6 +67,7 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        //todo 并发
         //2. 请求日志
         ServerHttpRequest request = exchange.getRequest();
         ServerHttpResponse response = exchange.getResponse();
@@ -78,70 +76,86 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
         log.info("请求唯一标识：" + request.getId());
         log.info("请求方法：" + method);
         log.info("请求路径：" + path);
-        log.info("请求参数：" + request.getQueryParams());
-        log.info("请求来源地址：" + request.getRemoteAddress());
-        //3. 访问控制（--黑白名单）最好用白名单
+        log.info("url请求参数：" + request.getQueryParams());
         String sourceAddress = request.getRemoteAddress().getHostString();
-        if (!IP_WHITE_LIST.contains(sourceAddress)) {
-            return handleNoAuth(response);
-        }
+        log.info("请求来源地址："+sourceAddress);
+        //3. 访问控制（--黑白名单）最好用白名单
+//        if (!IP_WHITE_LIST.contains(sourceAddress)) {
+//            return handleNoAuth(response);
+//        }
         //4. 用户鉴权（判断 accessKey, secretKey 是否合法）
         //API签名认证
         HttpHeaders headers = request.getHeaders();
         String accessKey = headers.getFirst("accessKey");
-        String body = headers.getFirst("body");
+        //todo 注意：请求头里的取的body好像去掉了" {"name":"username","type":"string"} "引号内两侧的空格，所以前端传入的{"":"","":""}两侧不要加空格，否则sign会校验失败
+        //todo body内中文乱码，body变化导致之后用于生成签名时产生一个错误的签名
+        String body = headers.getFirst("body");//请求参数的校验最好不放在网关，放到模拟接口的业务层
         String nonce = headers.getFirst("nonce");
         String timestamp = headers.getFirst("timestamp");
         String sign = headers.getFirst("sign");
-        //todo实际情况应该是从数据库中查该ak是否已分配给用户（这个accessKey，看它是否存在以及拥有它的用户是否正常）
+        String apiId = headers.getFirst("id");
+        //用户的校验：accessKey是否存在、用户是否正常、查询的正确密钥是否存在    todo在网关校验
+        if (StringUtils.isAnyBlank(accessKey,nonce,timestamp,sign,apiId)) {
+            return handleNoAuth(response);
+        }
         User invokeUser = null;
         try {
-             invokeUser = innerUserService.getInvokeUser(accessKey);
+            //网关不能因异常而停止，需捕获
+            invokeUser = innerUserService.getInvokeUser(accessKey);
         } catch (Exception e) {
             log.error("getInvokeUser error");
         }
-        if (invokeUser == null) {
+        //try内发生异常后，异常点后的代码不会执行，所以下面的代码得提取出来
+        if (invokeUser == null||invokeUser.getStatus() != 0 || invokeUser.getSecretKey() == null) {
             return handleNoAuth(response);
         }
-        //todo 随机数需要额外到后端存储。弄个hashmap或者redis来存，比较麻烦。这里先对随机数进行简单校验来暂时代替
-        //将随机数字符串nonce转为整数。获取的随机数nonce可能为空
-        if (Long.parseLong(nonce) >= 100000) {
-            return handleNoAuth(response);
-        }
+        //校验时间戳（签名认证多少s内有效）
         Long currentTime = System.currentTimeMillis() / 1000;
-        final Long FIVE_MINUTES = 5 * 60L;
-        //todo 获取的时间戳（发http请求调用接口时设置的系统时间）和当前时间不超过5分钟。比较麻烦，还需写个时间解析之类的。
-        if ((currentTime - Long.parseLong(timestamp)) > 5 * 60) {
+        final Long TEN_MINUTES = 10 * 60L;
+        //todo当前时间-平台后端给网关发送http请求的时间,不超过10分钟【可能要时间解析之类的】
+        if ((currentTime - Long.parseLong(timestamp)) > TEN_MINUTES) {
             return handleNoAuth(response);
         }
-        //todo body可校验，可不校验
-        //todo实际情况中，正确密钥secretKey（123456）应该是根据accessKey从数据库中查出来的
+        //校验随机数【防重放】，配合时间戳使用
+        //todo key小概率相同。每正常调用一次接口，都会存一个key到redis中，如果用户并发量很大（几百万），redis内存是否足够？？？
+        //用户每次调用接口时，平台后端会随机生成一个随机数设置到请求头。我们把（用户id+随机数）存放到redis中，
+        // 每次签名认证时查询redis看这个key是否存在，如果存在，无法访问。如果key不存在，则可以访问并把（用户id+随机数）保存到redis中
+        //redis分布式缓存（spring data redis实现redis）
+        String key = invokeUser.getId()+":" + nonce;
+        if (!innerRedisService.writeCache(key)) {
+            //有可能因为redis连接的问题导致用户写缓存失败，然后用户请求被黑客拦截重放，黑客访问时刚好redis可连接，写入成功，但接口最多调用一次（只要redis随机数存在）。
+            //黑客可等随机数11分钟失效后再去调用+要求时间戳可修改为最新。
+            //或者黑客可以修改重放的随机数，在时间戳内可调用；时间戳也修改，黑客可随时访问。
+            //总结：并非绝对安全
+            return handleNoAuth(response);
+        }
+//        todo随机数需要额外存储到后端。弄个hashmap或者redis来存，比较麻烦。这里先对随机数进行简单校验来暂时代替
+//        if (Long.parseLong(nonce) < 0||Long.parseLong(nonce) > 999999999) {
+//            return handleNoAuth(response);
+//        }
+
+        //密钥是否正确(sign匹配)
         String secretKey = invokeUser.getSecretKey();
-        String serverSign = SignUtils.genSign(body, secretKey);
-        //以同样的签名算法，将相同的参数body、正确的密钥secretKey生成一个正确的签名
-        //（这里为了方便，把hashmap换成了body，毕竟用hashmap麻烦，还得重新拼个hashmap）
-        if (!sign.equals(serverSign)) {
+        //以相同的参数body、正确的密钥，再加上相同的签名生成算法，生成一个正确的签名
+        //todo 耗费几秒
+        String correctSign = SignUtils.genSign(body, secretKey);
+        //这里为了方便，把hashmap换成了body，毕竟用hashmap麻烦，还得重新拼个hashmap，这个拼接的拼法根据实际情况决定
+        if (!sign.equals(correctSign)) {
             return handleNoAuth(response);
         }
-        //5. 请求的模拟接口是否存在
-        //todo从数据库中查询请求的接口是否存在以及请求方法是否匹配（这种业务层面的 用户传入的请求参数 和 接口要求的 是否匹配的校验最好放在业务层去校验，而不是放在全局过滤器这里）
-        //根据接口的完整url和method去查询
-        OpenApi invokeOpenApi = null;
-        String url = OPEN_API_HOST + path;
-        try {
-            invokeOpenApi = innerOpenApiService.getInvokeOpenApi(url, method.toString());
-        } catch (Exception e) {
-            log.error("getInvokeOpenApi error");
+        //用户是否有权限调用该接口、是否还有调用次数 todo在网关校验
+        UserOpenApi userOpenApi = innerUserOpenApiService.judgeUserRight(invokeUser.getId(), Long.parseLong(apiId));
+        if (userOpenApi == null|| userOpenApi.getStatus() == 1||userOpenApi.getLeftNum() <= 0) {
+            return handleNoAuth(response);
         }
-        //try内，发生异常后，异常后的代码不会执行，所以下面的代码得提取出来
-        if (invokeOpenApi == null) {
-            return handleInvokeError(response);
-        }
-        //因为网关项目没引入 MyBatis 等操作数据库的类库，如果该操作较为复杂，可以由xianyuApi-backend 增删改查项目来提供接口，然后发http请求或者用rhp来直接调用该接口，不需要重复写逻辑。
-        //6. 请求转发，调用模拟接口（先处理这个，把整个流程跑通）
-//        Mono<Void> filter = chain.filter(exchange);
-//        return filter;
-        return handleResponse(exchange,chain,invokeUser,invokeOpenApi);
+        //5. 路由请求转发，调用模拟接口
+        // 实测：chain.filter执行后，立刻返回，接着执行了接口次数统计（此时接口仍未调用）。filer返回后才开始调用模拟接口。
+        //Mono<Void> filter = chain.filter(exchange);//根本原因：异步
+        //统计接口调用次数
+        //return filter;
+
+        //5.路由请求转发，调用模拟接口。利用响应装饰器处理响应（来统计接口调用次数）
+        return handleResponse(exchange,chain,invokeUser,Long.parseLong(apiId));
     }
 
 
@@ -186,10 +200,10 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
      * @param exchange
      * @param chain
      * @param invokeUser 调用接口的用户
-     * @param invokeOpenApi 调用的接口
+     * @param apiId 调用的接口
      * @return
      */
-    public Mono<Void> handleResponse(ServerWebExchange exchange, GatewayFilterChain chain,User invokeUser,OpenApi invokeOpenApi) {
+    public Mono<Void> handleResponse(ServerWebExchange exchange, GatewayFilterChain chain,User invokeUser,Long apiId) {
         try {
             //原始响应
             ServerHttpResponse originalResponse = exchange.getResponse();
@@ -200,7 +214,7 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
             if(statusCode == HttpStatus.OK){
                 // 装饰，增强原始响应的能力
                 ServerHttpResponseDecorator decoratedResponse = new ServerHttpResponseDecorator(originalResponse) {
-                    // 等调用完转发的接口后才会执行（即响应的时候才会执行writeWith）
+                    // 等调用完模拟接口后才会执行（即响应的时候才会执行writeWith）
                     @Override
                     public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
                         log.info("body instanceof Flux: {}", (body instanceof Flux));
@@ -210,9 +224,9 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
                             // 拼接字符串
                             return super.writeWith(fluxBody.map(dataBuffer -> {
                                 try {
-                                    //8. 调用成功，次数 + 1
+                                    //6. 调用成功，次数 + 1
                                     // todo调用次数+1 invokeCount
-                                    innerUserOpenApiService.invokeCount(invokeUser.getId(), invokeOpenApi.getId());
+                                    innerUserOpenApiService.invokeCount(invokeUser.getId(), apiId);
                                 } catch (Exception e) {
                                     log.error("invokeCount error");
                                 }
@@ -231,13 +245,14 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
                                 return bufferFactory.wrap(content);
                             }));
                         } else {
-                            //9. 调用失败，返回一个规范的错误码
+                            //8. 调用失败，返回一个规范的错误码
                             log.error("<--- {} 响应code异常", getStatusCode());
                         }
                         return super.writeWith(body);
                     }
                 };
-                //statusCode是Ok。设置 response 对象为装饰过的。请求转发，调用模拟接口
+                //statusCode是Ok。设置 response 对象为装饰过的。
+                //5.路由请求转发，调用模拟接口。利用响应装饰器处理响应（来统计接口调用次数）
                 return chain.filter(exchange.mutate().response(decoratedResponse).build());
             }
             //statusCode不是Ok。降级处理返回数据

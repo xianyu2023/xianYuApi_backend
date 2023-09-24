@@ -33,6 +33,11 @@ public class OpenApiQueryRequest extends PageRequest implements Serializable {
     private String description;
 
     /**
+     * 搜索词
+     */
+    private String searchText;
+
+    /**
      * 接口地址
      */
     private String url;
@@ -61,6 +66,13 @@ public class OpenApiQueryRequest extends PageRequest implements Serializable {
      * 创建人id
      */
     private Long userId;
+
+    /**
+     * 数据源
+     */
+    private String origin;
+
+
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
