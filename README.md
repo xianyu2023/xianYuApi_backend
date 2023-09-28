@@ -31,7 +31,7 @@
 | **[xianyu-gateway](https://github.com/xianyu2023/xianYuApi_backend/tree/master/xianyu-gateway)**                                                                                                                              | 网关模块      |
 | **[Open_Api](https://github.com/xianyu2023/xianYuApi_backend/tree/master/Open_Api)**                                                                                                                                    | 模拟接口模块    |
 | **[XianYuOpenApi-client-sdk-user](https://github.com/xianyu2023/XianYuOpenApi-client-sdk-user)**                                                                          | 开发者用SDK   |
-| **[XianYuOpenApi-client-sdk]()**                                                                                                            | 仅平台内部用SDK |
+| **[XianYuOpenApi-client-sdk](https://github.com/xianyu2023/XianYuOpenApi-client-sdk-admin)**                                                                                                            | 仅平台内部用SDK |
 
 ## 项目流程
 
