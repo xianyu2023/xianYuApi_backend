@@ -15,10 +15,10 @@
 
 ## 网站导航
 
-- [**咸鱼API开放平台 后端**](https://github.com/)
-- [**咸鱼API开放平台 前端**️](https://github.com/)
+- [**咸鱼API开放平台 后端**](https://github.com/xianyu2023/xianYuApi_backend)
+- [**咸鱼API开放平台 前端**️]([https://github.com/](https://github.com/xianyu2023/xianYuApi_front))
 
--  **[XianYuOpenApi-client-sdk-user](https://github.com/)** 🛠
+-  **[XianYuOpenApi-client-sdk-user](https://github.com/xianyu2023/XianYuOpenApi-client-sdk-user)** 🛠
 
 
 ## 项目模块
@@ -26,11 +26,11 @@
 
 | 目录                                                                                                                                                  | 描述        |
 |-----------------------------------------------------------------------------------------------------------------------------------------------------|-----------|
-| **[xianYuApi_backend]()**                                                                                                                           | 平台后端服务模块  |
-| **[xianyu-common]()**                                                                                                                               | 公共服务模块    |
-| **[xianyu-gateway]()**                                                                                                                              | 网关模块      |
-| **[Open_Api]()**                                                                                                                                    | 模拟接口模块    |
-| **[XianYuOpenApi-client-sdk-user]()**                                                                          | 开发者用SDK   |
+| **[xianYuApi_backend](https://github.com/xianyu2023/xianYuApi_backend)**                                                                                                                           | 平台后端服务模块  |
+| **[xianyu-common](https://github.com/xianyu2023/xianYuApi_backend/tree/master/xianyu-common)**                                                                                                                               | 公共服务模块    |
+| **[xianyu-gateway](https://github.com/xianyu2023/xianYuApi_backend/tree/master/xianyu-gateway)**                                                                                                                              | 网关模块      |
+| **[Open_Api](https://github.com/xianyu2023/xianYuApi_backend/tree/master/Open_Api)**                                                                                                                                    | 模拟接口模块    |
+| **[XianYuOpenApi-client-sdk-user](https://github.com/xianyu2023/XianYuOpenApi-client-sdk-user)**                                                                          | 开发者用SDK   |
 | **[XianYuOpenApi-client-sdk]()**                                                                                                            | 仅平台内部用SDK |
 
 ## 项目流程
