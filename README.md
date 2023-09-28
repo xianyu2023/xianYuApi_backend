@@ -95,7 +95,7 @@ yarn build or npm run build
 
 - Umi 4 前端框架
   
--Umi Request请求工具 (Axios 的封装) 
+- Umi Request请求工具 (Axios 的封装) 
 
 - OpenAPI 前端代码生成
 
