@@ -16,7 +16,7 @@
 ## 网站导航
 
 - [**咸鱼API开放平台 后端**](https://github.com/xianyu2023/xianYuApi_backend)
-- [**咸鱼API开放平台 前端**️]([https://github.com/](https://github.com/xianyu2023/xianYuApi_front))
+- [**咸鱼API开放平台 前端**️](https://github.com/xianyu2023/xianYuApi_front)
 
 -  **[XianYuOpenApi-client-sdk-user](https://github.com/xianyu2023/XianYuOpenApi-client-sdk-user)** 🛠
 
