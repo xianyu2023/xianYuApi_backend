@@ -7,7 +7,7 @@
 
 **用户可以注册登录，浏览咸鱼API列表，可以开通接口获取一定的调用次数，能够查看已开通的接口以及剩余调用次数。支持接口在线调试，支持接口聚合搜索。**
 
-**提供了[客户端SDK: XianYuOpenApi-client-sdk-user](https://github.com/)，并支持starter依赖引入，能够让开发者轻松地在项目中调用接口。用户设置页可获取签名密钥用于客户端SDK调用接口**
+**提供了[客户端SDK: XianYuOpenApi-client-sdk-user](https://github.com/xianyu2023/XianYuOpenApi-client-sdk-user)，并支持starter依赖引入，能够让开发者轻松地在项目中调用接口。用户设置页可获取签名密钥用于客户端SDK调用接口**
 
 **管理员可以管理平台的所有接口以及用户，支持接口上线、下线、统计分析等功能，可视化接口TOP N的调用情况。**
 
