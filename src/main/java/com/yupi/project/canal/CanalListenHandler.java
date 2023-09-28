@@ -7,9 +7,10 @@ import top.javatool.canal.client.annotation.CanalTable;
 import top.javatool.canal.client.handler.EntryHandler;
 import javax.annotation.Resource;
 
-
+//todo bug: elasticsearchRestTemplate.search时，从ES中查不到，使用ES的devtools可以查到
 /**
  * canal的监控处理器
+ * 使用了canal和springbooy的整合starter
  * @author happyxianfish
  */
 

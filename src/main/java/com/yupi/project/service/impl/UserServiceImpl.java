@@ -10,6 +10,7 @@ import com.xianyu.xianyucommon.model.entity.User;
 import com.xianyu.xianyucommon.model.vo.UserVO;
 import com.yupi.project.common.ErrorCode;
 import com.yupi.project.constant.CommonConstant;
+import com.yupi.project.constant.UserConstant;
 import com.yupi.project.enums.UserRoleEnum;
 import com.yupi.project.exception.BusinessException;
 import com.yupi.project.mapper.UserMapper;
@@ -49,10 +50,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Resource
     private UserMapper userMapper;
 
-    /**
-     * 盐值，混淆密码
-     */
-    private static final String SALT = "yupi";
 
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -79,11 +76,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
             }
             // 2. 加密
-            String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+            String encryptPassword = DigestUtils.md5DigestAsHex((UserConstant.SALT + userPassword).getBytes());
             //申请签名[分配 accessKey, secretKey]
             //使用摘要加密MD5Hex，加入盐值（相同）、用户账号（不同）、随机数（可能相同），尽量保证ak不一样，而sk应更复杂。
-            String accessKey = DigestUtil.md5Hex(SALT+userAccount+ RandomUtil.randomNumbers(5));
-            String secretKey = DigestUtil.md5Hex(SALT+userAccount+ RandomUtil.randomNumbers(8));
+            String accessKey = DigestUtil.md5Hex(UserConstant.SALT+userAccount+ RandomUtil.randomNumbers(5));
+            String secretKey = DigestUtil.md5Hex(UserConstant.SALT+userAccount+ RandomUtil.randomNumbers(8));
             // 3. 插入数据
             User user = new User();
             user.setUserAccount(userAccount);
@@ -111,7 +108,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
         }
         // 2. 加密
-        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+        String encryptPassword = DigestUtils.md5DigestAsHex((UserConstant.SALT + userPassword).getBytes());
         // 查询用户是否存在
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("userAccount", userAccount);

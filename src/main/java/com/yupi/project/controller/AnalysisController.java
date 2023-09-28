@@ -44,7 +44,7 @@ public class AnalysisController {
     @GetMapping("/openApi/invoke/top")
     public BaseResponse<List<OpenApiVO>> getTopOpenApiInvoke() {
         //SQL查询topN
-        List<OpenApiIdAndNums> topOpenApiList = userOpenApiMapper.getTopOpenApiInvoke(3);
+        List<OpenApiIdAndNums> topOpenApiList = userOpenApiMapper.getTopOpenApiInvoke(6);
         //给topOpenApiList里的每个元素添加一个id标识（通过流的分组功能，得到一个map，id作为key（标识））
         Map<Long, List<OpenApiIdAndNums>> map = topOpenApiList.stream().collect(Collectors.groupingBy(OpenApiIdAndNums::getOpenApiId));
         //编程式 关联查询open_api表（由于取的是topN，数据不多，所以关联查询效率还可以）

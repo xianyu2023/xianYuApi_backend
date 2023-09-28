@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
 import com.xianyu.xianyucommon.model.entity.User;
 import com.xianyu.xianyucommon.model.vo.UserVO;
 import com.yupi.project.common.*;
+import com.yupi.project.constant.UserConstant;
 import com.yupi.project.exception.BusinessException;
 
 import com.yupi.project.model.dto.user.*;
@@ -15,11 +16,15 @@ import com.yupi.project.model.dto.user.*;
 import com.yupi.project.service.UserService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -33,11 +38,6 @@ public class UserController {
 
     @Resource
     private UserService userService;
-
-    /**
-     * 盐值，混淆密码
-     */
-    private static final String SALT = "yupi";
 
     // region 登录相关
 
@@ -129,8 +129,8 @@ public class UserController {
         //todo 用户申请更换签名（这里是用户自动更新签名）
         User loginUser = userService.getLoginUser(request);
         String userAccount = loginUser.getUserAccount();
-        String accessKey = DigestUtil.md5Hex(SALT+userAccount+ RandomUtil.randomNumbers(5));
-        String secretKey = DigestUtil.md5Hex(SALT+userAccount+ RandomUtil.randomNumbers(8));
+        String accessKey = DigestUtil.md5Hex(UserConstant.SALT+userAccount+ RandomUtil.randomNumbers(5));
+        String secretKey = DigestUtil.md5Hex(UserConstant.SALT+userAccount+ RandomUtil.randomNumbers(8));
         loginUser.setAccessKey(accessKey);
         loginUser.setSecretKey(secretKey);
         boolean result = userService.updateById(loginUser);
@@ -188,6 +188,12 @@ public class UserController {
         }
         User user = new User();
         BeanUtils.copyProperties(userUpdateRequest, user);
+        String userPassword = userUpdateRequest.getUserPassword();
+        if (!StringUtils.isBlank(userPassword)) {
+            //修改密码
+            String encryptPassword = DigestUtils.md5DigestAsHex((UserConstant.SALT + userPassword).getBytes());
+            user.setUserPassword(encryptPassword);
+        }
         boolean result = userService.updateById(user);
         return ResultUtils.success(result);
     }
@@ -263,4 +269,24 @@ public class UserController {
     }
 
     // endregion
+
+    //region业务
+
+    /**
+     * 获取当前登录用户以及ak、sk
+     *
+     * @param request
+     * @return
+     */
+    @GetMapping("/get/akAndSk")
+    public BaseResponse<Map<String,Object>> getAkSk(HttpServletRequest request) {
+        User user = userService.getLoginUser(request);
+        String accessKey = user.getAccessKey();
+        String secretKey = user.getSecretKey();
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("accessKey",accessKey);
+        map.put("secretKey",secretKey);//todo secretKey不安全，暂时没想到怎么把服务器的secretKey发给用户，又不能让其他人知道，短信？
+        return ResultUtils.success(map);
+    }
+
 }

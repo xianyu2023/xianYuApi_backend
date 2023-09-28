@@ -16,4 +16,11 @@ public interface InnerOpenApiService{
      * @return
      */
    OpenApi getInvokeOpenApi(String url,String method);
+
+    /**
+     * 根据id获取接口
+     * @param apiId
+     * @return
+     */
+    OpenApi getInvokeOpenApiById(String apiId);
 }

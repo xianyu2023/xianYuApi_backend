@@ -1,6 +1,7 @@
 package com.xianyu.open_api.controller;
 import cn.hutool.json.JSONUtil;
 import com.xianyu.xianyuopenapiclientsdk.model.User;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 
@@ -33,6 +34,14 @@ public class NameController {
      */
     @PostMapping("/json")
     public String getUserNameByPost(HttpServletRequest request) {
+        //网关有流量染色，模拟接口应进行相应的流量校验
+        String gateway = request.getHeader("gateway");
+        if (StringUtils.isBlank(gateway)) {
+            return "";
+        }
+        if (!gateway.equals("xianyu_gateway")) {
+            return "";
+        }
         //api签名认证、接口统计次数在网关统一执行
         String body = request.getHeader("body");
         User user = JSONUtil.toBean(body, User.class);

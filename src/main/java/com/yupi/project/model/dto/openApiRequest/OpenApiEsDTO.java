@@ -11,13 +11,13 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 帖子 ES 包装类
+ * 接口 ES 包装类
  *【就像数据库表需要一个实体类来接受一样。ES索引/文档/表也需要一个实体类来接受】
  * @author <a href="https://github.com/liyupi">程序员鱼皮</a>
  * @from <a href="https://yupi.icu">编程导航知识星球</a>
  **/
-// todo 取消注释开启 ES（须先配置 ES）
-@Document(indexName = "openapi")
+// todo 取消注释需先开启 ES（须先配置 ES）
+@Document(indexName = "open_api")
 @Data
 public class OpenApiEsDTO implements Serializable {
 

@@ -51,7 +51,15 @@
             <artifactId>XianYuOpenApi-client-sdk</artifactId>
             <version>0.0.1</version>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.12.0</version>
+        </dependency>
     </dependencies>
+
 
     <build>
         <plugins>

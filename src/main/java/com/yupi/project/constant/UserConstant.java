@@ -29,5 +29,10 @@ public interface UserConstant {
      */
     String ADMIN_ROLE = "admin";
 
+    /**
+     * 盐值，混淆密码
+     */
+    String SALT = "xianyu";
+
     // endregion
 }

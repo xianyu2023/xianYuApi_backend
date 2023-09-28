@@ -1,21 +1,30 @@
 package com.yupi.project.canal;
-
 import com.alibaba.otter.canal.client.CanalConnector;
 import com.alibaba.otter.canal.client.CanalConnectors;
 import com.alibaba.otter.canal.common.utils.AddressUtils;
 import com.alibaba.otter.canal.protocol.CanalEntry;
 import com.alibaba.otter.canal.protocol.Message;
 import com.google.protobuf.ByteString;
+import com.yupi.project.esdao.OpenApiEsDao;
+import com.yupi.project.model.dto.openApiRequest.OpenApiEsDTO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
-
+import org.springframework.stereotype.Component;
+import javax.annotation.Resource;
 import java.net.InetSocketAddress;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.List;
-
 /**
- * 有canal的监控处理器，可以不用开启本类
+ * 有canal的监控处理器，就可以不用开启本类
+ * 本类没有用canal和springbooy的整合starter
  */
+@Slf4j
 //@Component
 public class CanalDemo implements CommandLineRunner {
+
+    @Resource
+    private OpenApiEsDao openApiEsDao;
 
     @Override
     public void run(String... args) throws Exception {
@@ -52,7 +61,7 @@ public class CanalDemo implements CommandLineRunner {
                     //message有数据
                     System.out.printf("message[batchId=%s,size=%s] \n", batchId, size);
                     //将多条sql的执行结果entries（内含mysql变更数据）传入方法中
-                    printEntry(entries);
+                    doEntries(entries);
                 }
                 // 提交确认?
                 connector.ack(batchId);
@@ -62,7 +71,7 @@ public class CanalDemo implements CommandLineRunner {
             connector.disconnect();
         }
     }
-    private static void printEntry(List<CanalEntry.Entry> entrys) {
+    private void doEntries(List<CanalEntry.Entry> entrys) {
         //遍历取出一条sql的执行结果
         for (CanalEntry.Entry entry : entrys) {
             //获取表名（该sql语句影响的表）
@@ -74,7 +83,6 @@ public class CanalDemo implements CommandLineRunner {
             }
             //  判断 entryType 是否为 ROWDATA
             if (CanalEntry.EntryType.ROWDATA.equals(entryType)) {
-
                 //获取该sql执行结果的具体数据【storeValue：被序列化的数据（二进制数据），无法直接使用】
                 ByteString storeValue = entry.getStoreValue();
                 CanalEntry.RowChange rowChage = null;
@@ -89,33 +97,63 @@ public class CanalDemo implements CommandLineRunner {
                 //获取变更数据的行数据列表（意义：该条sql导致变动的多条行数据）
                 List<CanalEntry.RowData> rowDatasList = rowChage.getRowDatasList();
                 //遍历取出一条变化的行数据
-                for (CanalEntry.RowData rowData : rowDatasList) {
-                    System.out.println("表名：" + tableName + ";   操作类型：" + eventType);
-                    //变化前的字段列表（每个字段的名称+值，都有）
-                    List<CanalEntry.Column> beforeColumnsList = rowData.getBeforeColumnsList();
-                    //变化后的字段列表（每个字段的名称+值，都有）
-                    List<CanalEntry.Column> afterColumnsList = rowData.getAfterColumnsList();
-                    //删除类型【有->无】
-                    if (eventType == CanalEntry.EventType.DELETE) {
-                        System.out.println("删除前:");
-                        printColumn(beforeColumnsList);
-                    } else if (eventType == CanalEntry.EventType.INSERT) {//增加类型【无->有】
-                        System.out.println("增加后");
-                        printColumn(afterColumnsList);
-                    } else {//修改类型
-                        System.out.println("修改前");
-                        printColumn(beforeColumnsList);
-                        System.out.println("修改后");
-                        printColumn(afterColumnsList);
-                    }
+                doOneSqlChange(tableName, eventType, rowDatasList);
+            }
+        }
+    }
+
+    private void doOneSqlChange(String tableName, CanalEntry.EventType eventType, List<CanalEntry.RowData> rowDatasList) {
+        for (CanalEntry.RowData rowData : rowDatasList) {
+            System.out.println("表名：" + tableName + ";   操作类型：" + eventType);
+            //变化前的字段列表（每个字段的名称+值，都有）
+            List<CanalEntry.Column> beforeColumnsList = rowData.getBeforeColumnsList();
+            //变化后的字段列表（每个字段的名称+值，都有）
+            List<CanalEntry.Column> afterColumnsList = rowData.getAfterColumnsList();
+            //本项目mysql暂没有物理删除，只有逻辑删除
+            if (eventType == CanalEntry.EventType.INSERT || eventType == CanalEntry.EventType.UPDATE) {
+                System.out.println("改动后");
+                printColumn(afterColumnsList);
+                int isDeleted = Integer.parseInt(afterColumnsList.get(12).getValue());
+                if (isDeleted == 1) {
+                    //mysql逻辑删除。删除es中的数据
+                    openApiEsDao.deleteById(Long.parseLong(afterColumnsList.get(0).getValue()));
+                } else {
+                    //修改、增加
+                    OpenApiEsDTO openApiEsDTO = columnsToOpenApiEsDto(afterColumnsList);
+                    openApiEsDao.save(openApiEsDTO);
                 }
             }
         }
     }
 
-    private static void printColumn(List<CanalEntry.Column> columns) {
+    private void printColumn(List<CanalEntry.Column> columns) {
         for (CanalEntry.Column column : columns) {
             System.out.println(column.getName() + " : " + column.getValue() + "    update=" + column.getUpdated());
         }
     }
+
+    private OpenApiEsDTO columnsToOpenApiEsDto(List<CanalEntry.Column> columns){
+        OpenApiEsDTO openApiEsDTO = new OpenApiEsDTO();
+        openApiEsDTO.setId(Long.parseLong(columns.get(0).getValue()));
+        openApiEsDTO.setName(columns.get(1).getValue());
+        openApiEsDTO.setDescription(columns.get(2).getValue());
+        openApiEsDTO.setUrl(columns.get(3).getValue());
+        openApiEsDTO.setMethod(columns.get(4).getValue());
+        openApiEsDTO.setRequestParams(columns.get(5).getValue());
+        openApiEsDTO.setRequestHeader(columns.get(6).getValue());
+        openApiEsDTO.setResponseHeader(columns.get(7).getValue());
+        openApiEsDTO.setStatus(Integer.parseInt(columns.get(8).getValue()));
+        openApiEsDTO.setUserId(Long.parseLong(columns.get(9).getValue()));
+        try {
+            openApiEsDTO.setCreateTime(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(columns.get(10).getValue()));
+            openApiEsDTO.setUpdateTime(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(columns.get(11).getValue()));
+        } catch (ParseException e) {
+            log.error("时间格式转换异常");
+        }
+        openApiEsDTO.setIsDeleted(Integer.parseInt(columns.get(12).getValue()));
+        openApiEsDTO.setPath(columns.get(13).getValue());
+        openApiEsDTO.setOrigin(columns.get(14).getValue());
+        return openApiEsDTO;
+    }
+
 }

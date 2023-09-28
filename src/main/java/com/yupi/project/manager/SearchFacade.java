@@ -9,11 +9,12 @@ import com.yupi.project.exception.ThrowUtils;
 import com.yupi.project.model.dto.search.SearchAllRequest;
 import com.yupi.project.model.vo.SearchAllVO;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -34,8 +35,6 @@ public class SearchFacade {
 
     public SearchAllVO searchAll(SearchAllRequest searchAllRequest, HttpServletRequest request) {
         String type = searchAllRequest.getType();
-        ThrowUtils.throwIf(StringUtils.isBlank(type), ErrorCode.PARAMS_ERROR);
-
         String searchText = searchAllRequest.getSearchText();
         long current = searchAllRequest.getCurrent();
         long pageSize = searchAllRequest.getPageSize();
@@ -58,11 +57,13 @@ public class SearchFacade {
             //同时执行所有异步任务（并发）,join阻塞后续代码立刻执行
             CompletableFuture.allOf(localOpenApiTask,botianOpenApiTask).join();
             try {
+                //获取到各数据源的数据
                 Page<OpenApiVO> local = localOpenApiTask.get();
                 Page<OpenApiVO> botian = botianOpenApiTask.get();
+                //处理数据，返回给前端
                 SearchAllVO searchAllVO = new SearchAllVO();
-                searchAllVO.setLocalOpenApiVOList(local.getRecords());
-                searchAllVO.setBotianOpenApiVOList(botian.getRecords());
+                searchAllVO.setLocalOpenApiVOList(local);
+                searchAllVO.setBotianOpenApiVOList(botian);
                 return searchAllVO;
             } catch (Exception e) {
                 log.error("查询异常" + e);
@@ -85,7 +86,7 @@ public class SearchFacade {
             DataSource<?> dataSource = dataSourceRegistry.getDataSourceByType(type);
             ThrowUtils.throwIf(dataSource==null,ErrorCode.PARAMS_ERROR);
             Page<?> page = dataSource.doSearch(searchText, current, pageSize);
-            searchAllVO.setDataList(page.getRecords());
+            searchAllVO.setDataList(page);
             return searchAllVO;
         }
     }

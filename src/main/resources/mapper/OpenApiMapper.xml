@@ -29,4 +29,10 @@
         responseHeader,status,userId,
         createTime,updateTime,isDeleted,path,origin
     </sql>
+
+    <select id="listOpenApiWithDelete" resultType="com.xianyu.xianyucommon.model.entity.OpenApi">
+        select *
+        from open_api
+        where updateTime >= #{minUpdateTime}
+    </select>
 </mapper>

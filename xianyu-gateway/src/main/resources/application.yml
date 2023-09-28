@@ -28,4 +28,5 @@ dubbo:
     name: dubbo
     port: -1
   registry:
-    address: nacos://62.234.28.188:8848
+    address: nacos://localhost:8848
+#    address: nacos://62.234.28.188:8848

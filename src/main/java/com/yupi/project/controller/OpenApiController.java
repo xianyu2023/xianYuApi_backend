@@ -283,16 +283,16 @@ public class OpenApiController {
         if (openApi == null || openApi.getStatus() == 0) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
-        //如果调用的接口是第三方接口呢 todo(多添加一个标识，除了接口id外，还有接口是否是第三方接口，然后网关根据这个走不同的逻辑)
         //用户是否登录
         User loginUserPermitNull = userService.getLoginUserPermitNull(request);
         String result;
         if (loginUserPermitNull==null) {
-            //客户端SDK调用接口或者在线测试(未登录)
+            //客户端SDK调用接口（接口已开通/未开通，todo 未开通时给予一定的免费调用次数）或者未登录（没有用户id、ak、sk）的在线调用
             result = openApiService.invokeApiBySdk(openApiInvokeRequest, request, openApi);
             return ResultUtils.success(result);
         }
         //在线测试（已登录）
+        //在线调用（接口已开通/未开通，todo 未开通时给予一定的免费调用次数）
         result = openApiService.invokeApiByOnline(openApiInvokeRequest, openApi, loginUserPermitNull);
         return ResultUtils.success(result);
     }

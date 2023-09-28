@@ -25,4 +25,12 @@ public class InnerOpenApiServiceImpl implements InnerOpenApiService {
         queryWrapper.eq("method",method);
         return openApiMapper.selectOne(queryWrapper);
     }
+
+    @Override
+    public OpenApi getInvokeOpenApiById(String apiId) {
+        if (StringUtils.isAnyBlank(apiId)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        return openApiMapper.selectById(Long.parseLong(apiId));
+    }
 }

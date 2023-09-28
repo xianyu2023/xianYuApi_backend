@@ -1,4 +1,5 @@
 package com.yupi.project.model.vo;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xianyu.xianyucommon.model.vo.OpenApiVO;
 import lombok.Data;
 
@@ -10,12 +11,14 @@ import java.util.List;
  */
 @Data
 public class SearchAllVO implements Serializable {
-    private List<OpenApiVO> localOpenApiVOList;
+    private Page<OpenApiVO> localOpenApiVOList;
 
-    private List<OpenApiVO> botianOpenApiVOList;
+    private Page<OpenApiVO> botianOpenApiVOList;
+
     /**
      * 只查询其中一种数据类型
      */
-    private List<?> dataList;
+    private Page<?> dataList;
+
     private static final long serialVersionUID = 1L;
 }

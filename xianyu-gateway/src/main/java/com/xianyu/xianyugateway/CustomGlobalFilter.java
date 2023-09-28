@@ -1,6 +1,12 @@
 package com.xianyu.xianyugateway;
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xianyu.apiClientAdmin.utils.SignUtils;
+import com.xianyu.xianyucommon.model.entity.OpenApi;
 import com.xianyu.xianyucommon.model.entity.UserOpenApi;
+import com.xianyu.xianyucommon.service.InnerOpenApiService;
 import com.xianyu.xianyucommon.service.InnerRedisService;
 import org.apache.commons.lang3.StringUtils;
 import com.xianyu.xianyucommon.model.entity.User;
@@ -26,10 +32,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.netty.ByteBufFlux;
+
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 /**
  * 自定义全局过滤器
@@ -40,6 +46,8 @@ import java.util.List;
 @Component
 public class CustomGlobalFilter implements GlobalFilter, Ordered {
 
+    @DubboReference
+    private InnerOpenApiService innerOpenApiService;
     @DubboReference
     private InnerUserOpenApiService innerUserOpenApiService;
     @DubboReference
@@ -83,9 +91,16 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
 //        if (!IP_WHITE_LIST.contains(sourceAddress)) {
 //            return handleNoAuth(response);
 //        }
+        HttpHeaders headers = request.getHeaders();
+        //流量染色（给请求添加特定的请求头标识）
+        //存储header中
+        ServerHttpRequest serverHttpRequest = exchange.getRequest().mutate().headers(httpHeaders -> {
+            httpHeaders.add("gateway", "xianyu_gateway");
+        }).build();
+       //重置请求
+        exchange.mutate().request(serverHttpRequest);
         //4. 用户鉴权（判断 accessKey, secretKey 是否合法）
         //API签名认证
-        HttpHeaders headers = request.getHeaders();
         String accessKey = headers.getFirst("accessKey");
         //todo 注意：请求头里的取的body好像去掉了" {"name":"username","type":"string"} "引号内两侧的空格，所以前端传入的{"":"","":""}两侧不要加空格，否则sign会校验失败
         //todo body内中文乱码，body变化导致之后用于生成签名时产生一个错误的签名
@@ -148,6 +163,11 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
         if (userOpenApi == null|| userOpenApi.getStatus() == 1||userOpenApi.getLeftNum() <= 0) {
             return handleNoAuth(response);
         }
+        //判断调用的接口是否是第三方的接口
+        OpenApi openApi = innerOpenApiService.getInvokeOpenApiById(apiId);
+        if (!"local".equals(openApi.getOrigin())) {
+            return handleInvokeThirdApi(invokeUser,apiId,openApi,body,response);
+        }
         //5. 路由请求转发，调用模拟接口
         // 实测：chain.filter执行后，立刻返回，接着执行了接口次数统计（此时接口仍未调用）。filer返回后才开始调用模拟接口。
         //Mono<Void> filter = chain.filter(exchange);//根本原因：异步
@@ -193,6 +213,68 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
         //setComplete设置响应完成/结束
         return response.setComplete();
     }
+
+    /**
+     * 处理调用第三方接口
+     * @param openApi
+     * @param body
+     * @param response
+     * @return
+     */
+    public Mono<Void> handleInvokeThirdApi(User invokeUser,String apiId,OpenApi openApi,String body,ServerHttpResponse response) {
+        String result = null;
+        HttpResponse httpResponse = null;
+        String url = openApi.getUrl();
+        String apiMethod = openApi.getMethod();
+        if ("GET".equals(apiMethod) || "get".equals(apiMethod) || "get/post".equals(apiMethod)) {
+             httpResponse = HttpRequest.get(url)
+                    .header("Accept-Charset", "UTF-8")
+                    .body(body)
+                    .execute();
+            System.out.println(httpResponse.getStatus());//200正常
+            result = httpResponse.body();
+        }
+        if ("POST".equals(apiMethod) || "post".equals(apiMethod)) {
+             httpResponse = HttpRequest.post(url)
+                    .header("Accept-Charset", "UTF-8")
+                    .body(body)
+                    .execute();
+            System.out.println(httpResponse.getStatus());//200正常
+            result = httpResponse.body();
+        }
+        if (Objects.requireNonNull(httpResponse).getStatus() == 200) {
+            try {
+                //6. 调用成功，次数 + 1
+                // todo调用次数+1 invokeCount
+                innerUserOpenApiService.invokeCount(invokeUser.getId(), Long.parseLong(apiId));
+            } catch (Exception e) {
+                log.error("invokeCount error");
+            }
+        }
+        //设置响应状态码，然后返回直接拦截掉
+        response.setStatusCode(HttpStatus.OK);
+        //设置响应头信息Content-Type类型
+        response.getHeaders().add("Content-Type","application/json");
+        //设置返回json数据
+        return response.writeAndFlushWith(Flux.just(ByteBufFlux.just(response.bufferFactory().wrap(getWrapData(result)))));
+        //直接返回（没有返回数据）
+//        return response.setComplete().then();
+        //设置返回的数据（非json格式）
+//        return response.writeWith(Flux.just(response.bufferFactory().wrap("".getBytes())));
+    }
+
+    private byte[] getWrapData(String data) {
+        Map<String,String> map = new HashMap<>();
+        map.put("code","0");
+        map.put("data",data);
+        try {
+            return new ObjectMapper().writeValueAsString(map).getBytes();
+        } catch (JsonProcessingException e) {
+            //
+        }
+        return "".getBytes();
+    }
+
 
     /**
      * 处理响应

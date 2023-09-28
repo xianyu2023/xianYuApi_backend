@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 import com.xianyu.xianyucommon.model.entity.User;
 import com.xianyu.xianyucommon.model.entity.UserOpenApi;
+import com.xianyu.xianyucommon.model.vo.UserOpenApiVO;
 import com.yupi.project.annotation.AuthCheck;
 import com.yupi.project.common.*;
 import com.yupi.project.constant.CommonConstant;
@@ -19,6 +20,7 @@ import com.yupi.project.model.dto.userOpenApi.UserOpenApiUpdateRequest;
 import com.yupi.project.service.UserOpenApiService;
 import com.yupi.project.service.UserService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 用户调用接口
@@ -48,13 +51,13 @@ public class UserOpenApiController {
 
     /**
      * 创建
-     *
+     *  开通调用接口权限（需要管理员权限并审核。暂时不用管理员权限）
      * @param userOpenApiAddRequest
      * @param request
      * @return
      */
     @PostMapping("/add")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+//    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addUserOpenApi(@RequestBody UserOpenApiAddRequest userOpenApiAddRequest, HttpServletRequest request) {
         if (userOpenApiAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -62,7 +65,9 @@ public class UserOpenApiController {
         UserOpenApi userOpenApi = new UserOpenApi();
         BeanUtils.copyProperties(userOpenApiAddRequest, userOpenApi);
         // 校验
-        userOpenApiService.validUserOpenApi(userOpenApi, true);
+        if (!userOpenApiService.validUserOpenApi(userOpenApi, true)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
         User loginUser = userService.getLoginUser(request);
         userOpenApi.setUserId(loginUser.getId());
         boolean result = userOpenApiService.save(userOpenApi);
@@ -118,7 +123,9 @@ public class UserOpenApiController {
         UserOpenApi userOpenApi = new UserOpenApi();
         BeanUtils.copyProperties(userOpenApiUpdateRequest, userOpenApi);
         // 参数校验
-        userOpenApiService.validUserOpenApi(userOpenApi, false);
+        if (!userOpenApiService.validUserOpenApi(userOpenApi, false)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
         User user = userService.getLoginUser(request);
         long id = userOpenApiUpdateRequest.getId();
         // 判断是否存在
@@ -200,4 +207,48 @@ public class UserOpenApiController {
 
     // endregion
 
+
+    //region业务
+
+
+    /**
+     * 用户接口关系存在true，不存在返回false
+     * @param userOpenApiQueryRequest
+     * @return
+     */
+    @GetMapping("/get/relation")
+    public BaseResponse<Boolean> getUserOpenApiRelation(UserOpenApiQueryRequest userOpenApiQueryRequest) {
+        if (userOpenApiQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Long userId = userOpenApiQueryRequest.getUserId();
+        Long openApiId = userOpenApiQueryRequest.getOpenApiId();
+        if (ObjectUtils.anyNull(userId,openApiId)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        if (userId <= 0 || openApiId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        boolean result = userOpenApiService.getUserOpenApiRelation(userId, openApiId);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 获取登录用户已开通的接口
+     * loginUser
+     * @return
+     */
+    @GetMapping("/get/relation/userId")
+    public BaseResponse<List<UserOpenApiVO>> getUserOpenApiByUserId(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Long userId = loginUser.getId();
+        if (ObjectUtils.anyNull(userId) || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        List<UserOpenApi> userOpenApiList = userOpenApiService.getUserOpenApiByUserId(userId);
+        return ResultUtils.success(userOpenApiService.getUserOpenApiVO(userOpenApiList));
+    }
 }

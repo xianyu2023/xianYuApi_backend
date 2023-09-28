@@ -28,9 +28,9 @@ public class UserOpenApiAddRequest implements Serializable {
     private Integer totalNum;
 
     /**
-     * 剩余调用次数
+     * 剩余调用次数（默认150）
      */
-    private Integer leftNum;
+    private Integer leftNum = 150;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

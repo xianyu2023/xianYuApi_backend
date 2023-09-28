@@ -47,6 +47,13 @@ public class UserUpdateRequest implements Serializable {
      */
     private String userPassword;
 
+    /**
+     * 0-正常
+     * 1-封号
+     * 2-永久封号
+     */
+    private Integer status;
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 }

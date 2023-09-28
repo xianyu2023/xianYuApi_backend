@@ -14,6 +14,7 @@ spring:
     uris: http://localhost:9200
     username: root
     password: 123456
+    
   mvc:
     pathmatch:
       matching-strategy: ANT_PATH_MATCHER
@@ -43,8 +44,8 @@ mybatis-plus:
 xianyu:
   client:
     user:
-      access-key: xianyu
-      secret-key: 123456
+      access-key: 0fad0e95a337b12a68bb291f1422edc9
+      secret-key: 6d571300d64852cb8ab250b07211d427
 # application.yml (Spring Boot)
 dubbo:
   application:
@@ -54,8 +55,9 @@ dubbo:
     port: -1
   registry:
     id: nacos-registry
-    address: nacos://62.234.28.188:8848
-#    address: nacos://localhost:8848
+#    address: nacos://62.234.28.188:8848
+    address: nacos://localhost:8848
+
 canal:
   server: 127.0.0.1:11111 #canal 默认端口11111
   destination: example
